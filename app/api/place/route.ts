@@ -10,9 +10,17 @@ export async function GET(request: NextRequest) {
   const address = request.nextUrl.searchParams.get("address")?.trim() || "";
   if (!id || !name) return NextResponse.json({ error: "업체 정보가 부족합니다" }, { status: 400 });
 
-  const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/place-data/results/${id}.json?t=${Date.now()}`;
+  const token = process.env.GITHUB_ACTION_TOKEN;
+  const rawUrl = `https://api.github.com/repos/${owner}/${repo}/contents/results/${id}.json?ref=place-data&t=${Date.now()}`;
   try {
-    const saved = await fetch(rawUrl, { cache: "no-store", signal: AbortSignal.timeout(7000) });
+    const saved = await fetch(rawUrl, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(7000),
+      headers: {
+        Accept: "application/vnd.github.raw+json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
     if (saved.ok) {
       const data = await saved.json() as CollectedPlace;
       const hasCollectedData = Boolean(data?.naverId || data?.images?.length || data?.menus?.length || data?.reviews?.length);
@@ -24,7 +32,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ pending: true, message: "플레이스 자료를 수집하고 있어요" }, { status: 202 });
   }
 
-  const token = process.env.GITHUB_ACTION_TOKEN;
   if (!token) return NextResponse.json({ error: "GITHUB_ACTION_TOKEN_NOT_CONFIGURED" }, { status: 503 });
   const dispatch = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows/scrape-place.yml/dispatches`, {
     method: "POST",
