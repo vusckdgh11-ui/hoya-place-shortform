@@ -5,7 +5,7 @@ const requestId = process.env.PLACE_ID;
 const name = process.env.PLACE_NAME || "";
 const address = process.env.PLACE_ADDRESS || "";
 const query = `${name} ${address.split(" ").slice(0, 3).join(" ")}`.trim();
-const clean = (value = "") => String(value).replace(/<[^>]+>/g, " ").replace(/\\s+/g, " ").trim();
+const clean = (value = "") => String(value).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 const uniq = (items) => [...new Set(items.filter(Boolean))];
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ locale: "ko-KR", userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/152 Safari/537.36" });
@@ -28,7 +28,7 @@ if (!naverId) {
   await page.goto(`https://map.naver.com/p/search/${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 45000 });
   await page.waitForTimeout(5000);
   const html = await page.content();
-  naverId = html.match(/(?:placeId|id)["':=\\s]+([0-9]{5,})/)?.[1] || "";
+  naverId = html.match(/(?:placeId|id)["':=\s]+([0-9]{5,})/)?.[1] || "";
   await page.close();
 }
 
@@ -60,11 +60,12 @@ for (const tabName of ["menu", "photo", "review/visitor"]) {
   } catch { /* 다음 탭 계속 */ }
 }
 
-const imageMatches = [...combined.matchAll(/https?:\\?\\/\\/[^"'<>\\s]+?\\.(?:jpg|jpeg|png|webp)(?:\\?[^"'<>\\s]*)?/gi)].map((m) => m[0].replace(/\\\\\//g, "/").replace(/&amp;/g, "&"));
+const normalizedHtml = combined.replace(/\\\//g, "/").replace(/&amp;/g, "&");
+const imageMatches = [...normalizedHtml.matchAll(/https?:\/\/[^"'<>\s]+?\.(?:jpg|jpeg|png|webp)(?:\?[^"'<>\s]*)?/gi)].map((m) => m[0]);
 const images = uniq(imageMatches).filter((url) => /pstatic|naver|phinf/.test(url)).slice(0, 30);
-const menuBlocks = [...combined.matchAll(/"name"\s*:\s*"([^"\\]{2,50})"[\\s\\S]{0,300}?"price"\s*:\s*"?([0-9,]+)/g)].slice(0, 20);
+const menuBlocks = [...normalizedHtml.matchAll(/"name"\s*:\s*"([^"\\]{2,50})"[\s\S]{0,300}?"price"\s*:\s*"?([0-9,]+)/g)].slice(0, 20);
 const menus = uniq(menuBlocks.map((m) => `${clean(m[1])}|${clean(m[2])}`)).map((row) => { const [menuName, price] = row.split("|"); return { name: menuName, price }; });
-const reviews = uniq([...combined.matchAll(/"(?:reviewBody|body|text)"\s*:\s*"([^"\\]{8,220})"/g)].map((m) => clean(m[1].replace(/\\n/g, " ")))).slice(0, 30);
+const reviews = uniq([...normalizedHtml.matchAll(/"(?:reviewBody|body|text)"\s*:\s*"([^"\\]{8,220})"/g)].map((m) => clean(m[1].replace(/\\n/g, " ")))).slice(0, 30);
 
 await fs.mkdir("results", { recursive: true });
 await fs.writeFile(`results/${requestId}.json`, JSON.stringify({ id: requestId, naverId, name, address, category: clean(baseInfo.category || baseInfo.categoryName || ""), images, menus, reviews, collectedAt: new Date().toISOString(), source: naverId ? "naver-place" : "manual-fallback" }, null, 2));
