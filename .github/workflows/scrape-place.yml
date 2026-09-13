@@ -1,0 +1,52 @@
+name: Collect Naver Place data
+
+on:
+  workflow_dispatch:
+    inputs:
+      id:
+        required: true
+        type: string
+      name:
+        required: true
+        type: string
+      address:
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: place-${{ inputs.id }}
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.55.0
+      - run: npx playwright install chromium --with-deps
+      - name: Collect public place data
+        run: node .github/scripts/scrape-place.mjs
+        env:
+          PLACE_ID: ${{ inputs.id }}
+          PLACE_NAME: ${{ inputs.name }}
+          PLACE_ADDRESS: ${{ inputs.address }}
+      - name: Save result branch
+        run: |
+          mkdir -p /tmp/place-result
+          cp "results/${{ inputs.id }}.json" /tmp/place-result/result.json
+          git fetch origin place-data || true
+          git switch place-data || git switch --orphan place-data
+          mkdir -p results
+          cp /tmp/place-result/result.json "results/${{ inputs.id }}.json"
+          git add "results/${{ inputs.id }}.json"
+          git config user.name "hoya-place-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git commit -m "Update place ${{ inputs.id }}" || exit 0
+          git push origin place-data

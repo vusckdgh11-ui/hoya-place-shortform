@@ -7,6 +7,8 @@ type Place = { id: string; name: string; category: string; address: string; phon
 type Menu = { name: string; price: string };
 type Scene = { type: string; text: string; seconds: number; image: string };
 type Step = "search" | "analyze" | "editor";
+type SearchResponse = { places?: Place[]; error?: string };
+type PlaceResponse = { images?: string[]; menus?: Menu[]; reviews?: string[]; pending?: boolean; error?: string };
 
 const defaultPlace: Place = { id: "", name: "", category: "음식점", address: "", phone: "", image: "", reviewCount: 0, photoCount: 0, rating: "" };
 const hooks = ["여기 아직 모르면 손해예요", "요즘 이 동네에서 가장 궁금한 곳", "한 번 먹으면 또 찾게 되는 이유", "메뉴 고르기 어렵다면 이것부터"];
@@ -59,10 +61,10 @@ export default function Home() {
 
   async function searchPlaces() {
     if (!query.trim()) return;
-    setLoading(true); setStatus("네이버 플레이스에서 업체를 찾고 있어요"); setPlaces([]);
+    setLoading(true); setStatus("업체명과 주소를 찾고 있어요"); setPlaces([]);
     try {
       const res = await fetch(`/api/places?query=${encodeURIComponent(query.trim())}`);
-      const data = await res.json();
+      const data = await res.json() as SearchResponse;
       if (!res.ok || !data.places?.length) throw new Error(data.error || "검색 결과가 없습니다");
       setPlaces(data.places); setStatus(`${data.places.length}곳을 찾았어요`);
     } catch (error) { setStatus(error instanceof Error ? `자동 검색 실패: ${error.message}` : "검색에 실패했어요"); }
@@ -74,7 +76,16 @@ export default function Home() {
     const ticker = setInterval(() => setProgress((p) => Math.min(p + Math.ceil(Math.random() * 9), 88)), 650);
     try {
       const params = new URLSearchParams({ id: place.id, name: place.name, category: place.category, image: place.image || "" });
-      const res = await fetch(`/api/place?${params}`); const data = await res.json();
+      params.set("address", place.address || "");
+      let res = await fetch(`/api/place?${params}`); let data = await res.json() as PlaceResponse;
+      let attempts = 0;
+      while (res.status === 202 && attempts < 30) {
+        setStatus(`플레이스 사진·메뉴·리뷰 수집 중 · 약 ${Math.max(5, 90 - attempts * 3)}초 남음`);
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        const pollParams = new URLSearchParams(params); pollParams.set("poll", "1");
+        res = await fetch(`/api/place?${pollParams}`); data = await res.json() as PlaceResponse; attempts += 1;
+      }
+      if (!res.ok || data.pending) throw new Error(data.error || "수집 시간이 초과됐어요");
       const fetchedImages: string[] = (data.images || []).filter(Boolean);
       const fetchedMenus: Menu[] = data.menus || [];
       const fetchedReviews: string[] = data.reviews || [];
