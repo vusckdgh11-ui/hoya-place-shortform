@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const owner = "vusckdgh11-ui";
 const repo = "hoya-place-shortform";
-type CollectedPlace = { naverId?: string; images?: unknown[]; menus?: unknown[]; reviews?: unknown[] };
+type CollectedPlace = { naverId?: string; images?: unknown[]; placeImages?: unknown[]; blogImages?: unknown[]; menus?: unknown[]; reviews?: unknown[] };
 
 export async function GET(request: NextRequest) {
   const id = request.nextUrl.searchParams.get("id")?.replace(/[^0-9A-Za-z_-]/g, "");

@@ -85,16 +85,55 @@ for (const tabName of ["menu", "photo", "review/visitor"]) {
 
 const normalizedHtml = combined.replace(/\\\//g, "/").replace(/&amp;/g, "&");
 const imageMatches = [...normalizedHtml.matchAll(/https?:\/\/[^"'<>\s]+?\.(?:jpg|jpeg|png|webp)(?:\?[^"'<>\s]*)?/gi)].map((m) => m[0]);
-const images = uniq(imageMatches).filter((url) => {
+const placeImages = uniq(imageMatches).filter((url) => {
   const decoded = decodeURIComponent(url);
   const isPlacePhoto = /(?:ldb-phinf|pup-review-phinf|myplace-phinf)\.pstatic\.net/i.test(decoded);
   const isThumbnail = /[?&]type=f(?:48|84|120|152|167|180|192)_/i.test(url);
   return isPlacePhoto && !isThumbnail && !/(?:avatar|profile|favicon|emoji)/i.test(decoded);
 }).slice(0, 30);
+
+// 업체명과 지역을 함께 검색해 관련도가 높은 네이버 블로그의 원본 사진도 수집한다.
+const blogImages = [];
+try {
+  const page = await context.newPage();
+  await page.goto(`https://search.naver.com/search.naver?where=blog&query=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 45000 });
+  await page.waitForTimeout(3000);
+  const searchHtml = (await page.content()).replace(/\\\//g, "/").replace(/&amp;/g, "&");
+  const links = uniq([
+    ...await page.locator('a[href*="blog.naver.com"], a[href*="m.blog.naver.com"]').evaluateAll((nodes) => nodes.map((node) => node.href)).catch(() => []),
+    ...[...searchHtml.matchAll(/https?:\/\/(?:m\.)?blog\.naver\.com\/[A-Za-z0-9_.%-]+\/[0-9]+/gi)].map((match) => match[0]),
+  ]).filter((url) => !/PostList|BlogHome|Prologue/i.test(url)).slice(0, 8);
+  await page.close();
+
+  const addressTokens = address.split(" ").filter((token) => token.length >= 2).slice(1, 4);
+  for (const link of links) {
+    if (blogImages.length >= 30) break;
+    try {
+      const post = await context.newPage();
+      await post.goto(link, { waitUntil: "domcontentloaded", timeout: 35000 });
+      await post.waitForTimeout(1800);
+      const htmlParts = await Promise.all(post.frames().map((frame) => frame.content().catch(() => "")));
+      const blogHtml = htmlParts.join("\n").replace(/\\\//g, "/").replace(/&amp;/g, "&");
+      const blogText = clean(blogHtml);
+      const isRelevant = blogText.includes(clean(name)) && (!addressTokens.length || addressTokens.some((token) => blogText.includes(token)));
+      if (isRelevant) {
+        const found = [...blogHtml.matchAll(/https?:\/\/[^"'<>\s]+?\.(?:jpg|jpeg|png|webp)(?:\?[^"'<>\s]*)?/gi)].map((match) => match[0]);
+        for (const url of found) {
+          const decoded = decodeURIComponent(url);
+          if (/(?:blogfiles|postfiles)\.pstatic\.net/i.test(decoded) && !/(?:profile|emoji|sticker|se-map|staticmap|type=f(?:48|84|120|152|167|180|192)_)/i.test(decoded)) blogImages.push(url);
+        }
+      }
+      await post.close();
+    } catch { /* 다음 블로그 계속 */ }
+  }
+} catch { /* 블로그가 막혀도 플레이스 결과는 유지 */ }
+
+const uniqueBlogImages = uniq(blogImages).slice(0, 30);
+const images = uniq([...placeImages, ...uniqueBlogImages]).slice(0, 50);
 const menuBlocks = [...normalizedHtml.matchAll(/"name"\s*:\s*"([^"\\]{2,50})"[\s\S]{0,300}?"price"\s*:\s*"?([0-9,]+)/g)].slice(0, 20);
 const menus = uniq(menuBlocks.map((m) => `${clean(m[1])}|${clean(m[2])}`)).map((row) => { const [menuName, price] = row.split("|"); return { name: menuName, price }; });
 const reviews = uniq([...normalizedHtml.matchAll(/"(?:reviewBody|body|text)"\s*:\s*"([^"\\]{8,220})"/g)].map((m) => clean(m[1].replace(/\\n/g, " ")))).slice(0, 30);
 
 await fs.mkdir("results", { recursive: true });
-await fs.writeFile(`results/${requestId}.json`, JSON.stringify({ id: requestId, naverId, name, address, category: clean(baseInfo.category || baseInfo.categoryName || ""), images, menus, reviews, collectedAt: new Date().toISOString(), source: naverId ? "naver-place" : "manual-fallback" }, null, 2));
+await fs.writeFile(`results/${requestId}.json`, JSON.stringify({ id: requestId, naverId, name, address, category: clean(baseInfo.category || baseInfo.categoryName || ""), images, placeImages, blogImages: uniqueBlogImages, menus, reviews, collectedAt: new Date().toISOString(), source: naverId ? "naver-place-blog" : "manual-fallback" }, null, 2));
 await browser.close();
