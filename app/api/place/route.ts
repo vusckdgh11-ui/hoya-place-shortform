@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const owner = "vusckdgh11-ui";
 const repo = "hoya-place-shortform";
+type CollectedPlace = { naverId?: string; images?: unknown[]; menus?: unknown[]; reviews?: unknown[] };
 
 export async function GET(request: NextRequest) {
   const id = request.nextUrl.searchParams.get("id")?.replace(/[^0-9A-Za-z_-]/g, "");
@@ -12,7 +13,11 @@ export async function GET(request: NextRequest) {
   const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/place-data/results/${id}.json?t=${Date.now()}`;
   try {
     const saved = await fetch(rawUrl, { cache: "no-store", signal: AbortSignal.timeout(7000) });
-    if (saved.ok) return NextResponse.json(await saved.json());
+    if (saved.ok) {
+      const data = await saved.json() as CollectedPlace;
+      const hasCollectedData = Boolean(data?.naverId || data?.images?.length || data?.menus?.length || data?.reviews?.length);
+      if (hasCollectedData) return NextResponse.json(data);
+    }
   } catch { /* 아직 수집 결과 없음 */ }
 
   if (request.nextUrl.searchParams.get("poll") === "1") {

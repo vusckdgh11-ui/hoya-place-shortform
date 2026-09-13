@@ -26,10 +26,33 @@ try {
 if (!naverId) {
   const page = await context.newPage();
   await page.goto(`https://map.naver.com/p/search/${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 45000 });
-  await page.waitForTimeout(5000);
-  const html = await page.content();
-  naverId = html.match(/(?:placeId|id)["':=\s]+([0-9]{5,})/)?.[1] || "";
+  await page.waitForTimeout(8000);
+  const frameHtml = await Promise.all(page.frames().map((frame) => frame.content().catch(() => "")));
+  const html = frameHtml.join("\n");
+  naverId = html.match(/(?:place\.naver\.com|pcmap\.place\.naver\.com)\/(?:restaurant|place|hairshop|hospital|beauty)\/([0-9]{5,})/i)?.[1]
+    || html.match(/(?:placeId|placeid)["':=\s]+([0-9]{5,})/i)?.[1]
+    || html.match(/"id"\s*:\s*"([0-9]{5,})"/i)?.[1]
+    || "";
   await page.close();
+}
+
+if (!naverId) {
+  for (const searchUrl of [
+    `https://search.naver.com/search.naver?query=${encodeURIComponent(query)}`,
+    `https://m.search.naver.com/search.naver?query=${encodeURIComponent(query)}`,
+  ]) {
+    try {
+      const page = await context.newPage();
+      await page.goto(searchUrl, { waitUntil: "domcontentloaded", timeout: 45000 });
+      await page.waitForTimeout(3500);
+      const html = await page.content();
+      naverId = html.match(/(?:place\.naver\.com|pcmap\.place\.naver\.com)\/(?:restaurant|place|hairshop|hospital|beauty)\/([0-9]{5,})/i)?.[1]
+        || html.match(/(?:placeId|placeid)["':=\s]+([0-9]{5,})/i)?.[1]
+        || "";
+      await page.close();
+      if (naverId) break;
+    } catch { /* 다음 검색 경로 계속 */ }
+  }
 }
 
 let combined = "";
