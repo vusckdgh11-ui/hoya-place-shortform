@@ -1,0 +1,43 @@
+{
+  "id": "1088845117",
+  "naverId": "1540853018",
+  "name": "별당김치찜",
+  "address": "서울 서대문구 명물1길 2",
+  "category": "",
+  "images": [
+    "https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20200614_160%2F1592141547686NgRbS_JPEG%2FH-oJWIRIiGvxYCSQK4OTKVLZ.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&type=w560_sharpen&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20200614_160%2F1592141547686NgRbS_JPEG%2FH-oJWIRIiGvxYCSQK4OTKVLZ.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&type=w560_sharpen&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20200614_270%2F1592141569024qCHtB_JPEG%2FScqkamfaVx22PXskRcbMSr4h.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20220905_280%2F1662369155983uYRL8_JPEG%2F2DD57A41-5AD5-4C8D-B986-BF07B09DD021.jpeg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20220703_46%2F1656820596248f5gdq_JPEG%2F20220703_125606.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20180710_95%2F1531199622966LKurg_JPEG%2FWqXl26023pK9pRLvwwd088-m.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20211020_156%2F1634740740333Ub1K3_JPEG%2F8KHRiOZUU-cmFLM60LJQW5qI.jpg",
+    "https://pup-review-phinf.pstatic.net/MjAyNTEyMDlfNzgg/MDAxNzY1MjMyOTUxNzgy.7yl0TPzK7B1MPRn1MmTA0NhJOOZY4_8ZI6pN39hsMdwg._VElIZFqqb5J31lQRWYLIlxKofTvD1n73Y3JZMLGTRAg.JPEG",
+    "https://pup-review-phinf.pstatic.net/MjAyNTEyMDlfMjE4/MDAxNzY1MjMyOTUxODY2.dqCh-0iStGU64zsVI2Owc5xtbzr0qkTVlrZq8_P75MYg.Sd3Cd-TTHSRqKNFNDRDp7wr33qImmUKOSjWRy5zjTC4g.JPEG",
+    "https://pup-review-phinf.pstatic.net/MjAyNTA3MDZfMjI5/MDAxNzUxODA2MTQ4OTcw.HW6jQQ7ooX1hBTGTBKP4xCMnwJy1Ih2QGmCGh0j0Cx4g.3Oai4n595bOdPzLr1iMSc4sq93HlJSziJYCgePHTTbMg.JPEG",
+    "https://pup-review-phinf.pstatic.net/MjAyNTA3MDZfMTk0/MDAxNzUxODA2MTQ4ODIz.y7L0vXIDcZW7W2D-GjfdhQ-LSzFVS0CpM2BhSghyoEAg.3PQdXVvapQiY0yJ7CvfDXhvTfzSZq9ghKz5CurpMfdUg.JPEG",
+    "https://pup-review-phinf.pstatic.net/MjAyNTAyMjZfMTY2/MDAxNzQwNDk3MTE3NDMx.LT8SZrG-YCRypwtIzdN_Q-I5qo7E4wZPUbKXlgDZbFkg.57Onb0KEGGHEY22A9g6vg7b4KLkTTxRVQMWXGKIiOsog.JPEG",
+    "https://pup-review-phinf.pstatic.net/MjAyNDEwMjlfMTcx/MDAxNzMwMjA4NTg4MDM1.HYB1ZRLsyUVtpAr_axkOJ5Bh41RAuBfyUHnI8Tqs1rIg.Ranv9pYrxySKchuIVsVPbhfN9mzZY0tnj1-sRZ4tdB0g.JPEG",
+    "https://pup-review-phinf.pstatic.net/MjAyMzEwMjdfMjM3/MDAxNjk4MzczNDk0NTEw.YoblqDItsV0tUg-NbrEnJmy9eM_sHe7P8BXk94QtOlsg.OAsHgpxFpDoru4kDm7qZEwns1gejXIWMZ-oZNHCwNxgg.JPEG",
+    "https://pup-review-phinf.pstatic.net/MjAyMzEwMjdfMTQg/MDAxNjk4MzczNDk0NTU5.4apy3fm36ODvKPBD_o-xrQRWCre1fK9O9aDRv-Wojt8g.po17PKyYLQzQ_gM3VO6tlLEtm2OqlGI0Du-ve3nwhSIg.JPEG",
+    "https://pup-review-phinf.pstatic.net/MjAyMzEwMjdfMiAg/MDAxNjk4MzczNDk0MzY1.qt-DixC7hyw-gPT-CCUF5WLld_iG-fnyTAMRG-Uh6JYg.1AyZcg4o9wMmiiLLx9ogPck-PLlsEDManmpIQS_F5FIg.JPEG",
+    "https://pup-review-phinf.pstatic.net/MjAyMzEwMjdfMjc4/MDAxNjk4MzczNDk0NDU3.2Elb_AZIb3K16--2N3FSTZt4KGTsiOvRT7YqOVD93bIg.4TcZb2fJLbNAGu6MPZ-ulsvH9qLuFU4XDo_ZLgBUHXQg.JPEG"
+  ],
+  "menus": [
+    {
+      "name": "김치찜",
+      "price": "5000"
+    },
+    {
+      "name": "제육볶음",
+      "price": "5000"
+    }
+  ],
+  "reviews": [
+    "설렁탕이랑 김치찜집 맛있어요",
+    "김치찜 맛있게 먹고왔네요",
+    "소문듣고 일부러 찾아갔는데 완죤 4천원의 행복한밥상이네요^^b 제육볶음도 김치찜도 푸짐하고 맛나서 순삭했어요ㅎㅎ 아쉬운건 물을 사먹어야합니다~"
+  ],
+  "collectedAt": "2026-09-13T14:10:52.303Z",
+  "source": "naver-place"
+}
