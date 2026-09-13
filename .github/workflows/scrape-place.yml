@@ -41,8 +41,13 @@ jobs:
         run: |
           mkdir -p /tmp/place-result
           cp "results/${{ inputs.id }}.json" /tmp/place-result/result.json
-          git fetch origin place-data || true
-          git switch place-data || git switch --orphan place-data
+          rm -rf results
+          if git ls-remote --exit-code --heads origin place-data; then
+            git fetch origin place-data:place-data
+            git switch place-data
+          else
+            git switch --orphan place-data
+          fi
           mkdir -p results
           cp /tmp/place-result/result.json "results/${{ inputs.id }}.json"
           git add "results/${{ inputs.id }}.json"
