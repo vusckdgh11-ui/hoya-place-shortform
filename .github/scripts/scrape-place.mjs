@@ -4,43 +4,68 @@ import fs from "node:fs/promises";
 const requestId = process.env.PLACE_ID;
 const name = process.env.PLACE_NAME || "";
 const address = process.env.PLACE_ADDRESS || "";
-const query = `${name} ${address.split(" ").slice(0, 3).join(" ")}`.trim();
 const clean = (value = "") => String(value).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 const uniq = (items) => [...new Set(items.filter(Boolean))];
+const normalize = (value = "") => clean(value).replace(/[^0-9A-Za-z가-힣]/g, "").toLowerCase();
+const addressParts = address.split(" ").filter(Boolean);
+const city = addressParts.find((part) => /(?:시|군|구)$/.test(part)) || "";
+const shortNames = uniq([name, name.length >= 5 ? name.slice(1) : "", name.length >= 6 ? name.slice(2) : ""])
+  .filter((candidate) => normalize(candidate).length >= 3);
+const searchQueries = uniq([
+  `${name} ${addressParts.slice(0, 3).join(" ")}`,
+  `${name} ${city}`,
+  ...shortNames.slice(1).flatMap((candidate) => [`${candidate} ${city}`, candidate]),
+  name,
+]).map(clean);
+const query = searchQueries[0];
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ locale: "ko-KR", userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/152 Safari/537.36" });
 
 let naverId = "";
 let baseInfo = {};
-try {
-  const response = await context.request.get(`https://map.naver.com/p/api/search/allSearch?query=${encodeURIComponent(query)}&type=all`);
-  if (response.ok()) {
-    const json = await response.json();
-    const list = json?.result?.place?.list || json?.result?.place?.items || [];
-    const exact = list.find((p) => clean(p.name) === clean(name)) || list[0];
-    naverId = String(exact?.id || exact?.placeId || exact?.sid || "");
-    baseInfo = exact || {};
-  }
-} catch { /* 브라우저 검색으로 재시도 */ }
-
-if (!naverId) {
-  const page = await context.newPage();
-  await page.goto(`https://map.naver.com/p/search/${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 45000 });
-  await page.waitForTimeout(8000);
-  const frameHtml = await Promise.all(page.frames().map((frame) => frame.content().catch(() => "")));
-  const html = frameHtml.join("\n");
-  naverId = html.match(/(?:place\.naver\.com|pcmap\.place\.naver\.com)\/(?:restaurant|place|hairshop|hospital|beauty)\/([0-9]{5,})/i)?.[1]
-    || html.match(/(?:placeId|placeid)["':=\s]+([0-9]{5,})/i)?.[1]
-    || html.match(/"id"\s*:\s*"([0-9]{5,})"/i)?.[1]
-    || "";
-  await page.close();
+for (const searchQuery of searchQueries) {
+  if (naverId) break;
+  try {
+    const response = await context.request.get(`https://map.naver.com/p/api/search/allSearch?query=${encodeURIComponent(searchQuery)}&type=all`);
+    if (response.ok()) {
+      const json = await response.json();
+      const list = json?.result?.place?.list || json?.result?.place?.items || [];
+      const targetNames = shortNames.map(normalize);
+      const locality = addressParts.filter((part) => part.length >= 2 && /(?:시|군|구|동|로|길)$/.test(part));
+      const ranked = list.map((place) => {
+        const placeName = normalize(place.name);
+        const placeAddress = clean(place.roadAddress || place.address || place.jibunAddress || "");
+        const nameScore = Math.max(...targetNames.map((target) => placeName === target ? 100 : placeName.includes(target) || target.includes(placeName) ? 70 : 0));
+        const addressScore = locality.reduce((score, token) => score + (placeAddress.includes(token) ? 12 : 0), 0);
+        return { place, score: nameScore + addressScore };
+      }).sort((a, b) => b.score - a.score);
+      const match = ranked[0]?.score >= 70 ? ranked[0].place : null;
+      naverId = String(match?.id || match?.placeId || match?.sid || "");
+      baseInfo = match || {};
+    }
+  } catch { /* 다음 완화 검색어 계속 */ }
 }
 
 if (!naverId) {
-  for (const searchUrl of [
-    `https://search.naver.com/search.naver?query=${encodeURIComponent(query)}`,
-    `https://m.search.naver.com/search.naver?query=${encodeURIComponent(query)}`,
-  ]) {
+  for (const searchQuery of searchQueries) {
+    const page = await context.newPage();
+    await page.goto(`https://map.naver.com/p/search/${encodeURIComponent(searchQuery)}`, { waitUntil: "domcontentloaded", timeout: 45000 });
+    await page.waitForTimeout(4500);
+    const frameHtml = await Promise.all(page.frames().map((frame) => frame.content().catch(() => "")));
+    const html = frameHtml.join("\n");
+    naverId = html.match(/(?:place\.naver\.com|pcmap\.place\.naver\.com)\/(?:restaurant|place|hairshop|hospital|beauty)\/([0-9]{5,})/i)?.[1]
+      || html.match(/(?:placeId|placeid)["':=\s]+([0-9]{5,})/i)?.[1]
+      || "";
+    await page.close();
+    if (naverId) break;
+  }
+}
+
+if (!naverId) {
+  for (const searchUrl of searchQueries.flatMap((searchQuery) => [
+    `https://search.naver.com/search.naver?query=${encodeURIComponent(searchQuery)}`,
+    `https://m.search.naver.com/search.naver?query=${encodeURIComponent(searchQuery)}`,
+  ])) {
     try {
       const page = await context.newPage();
       await page.goto(searchUrl, { waitUntil: "domcontentloaded", timeout: 45000 });
@@ -95,15 +120,19 @@ const placeImages = uniq(imageMatches).filter((url) => {
 // 업체명과 지역을 함께 검색해 관련도가 높은 네이버 블로그의 원본 사진도 수집한다.
 const blogImages = [];
 try {
-  const page = await context.newPage();
-  await page.goto(`https://search.naver.com/search.naver?where=blog&query=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 45000 });
-  await page.waitForTimeout(3000);
-  const searchHtml = (await page.content()).replace(/\\\//g, "/").replace(/&amp;/g, "&");
-  const links = uniq([
-    ...await page.locator('a[href*="blog.naver.com"], a[href*="m.blog.naver.com"]').evaluateAll((nodes) => nodes.map((node) => node.href)).catch(() => []),
-    ...[...searchHtml.matchAll(/https?:\/\/(?:m\.)?blog\.naver\.com\/[A-Za-z0-9_.%-]+\/[0-9]+/gi)].map((match) => match[0]),
-  ]).filter((url) => !/PostList|BlogHome|Prologue/i.test(url)).slice(0, 8);
-  await page.close();
+  const collectedLinks = [];
+  for (const blogQuery of uniq([`${name} ${city}`, ...shortNames.map((candidate) => `${candidate} ${city}`)]).slice(0, 4)) {
+    const page = await context.newPage();
+    await page.goto(`https://search.naver.com/search.naver?where=blog&query=${encodeURIComponent(blogQuery)}`, { waitUntil: "domcontentloaded", timeout: 45000 });
+    await page.waitForTimeout(2500);
+    const searchHtml = (await page.content()).replace(/\\\//g, "/").replace(/&amp;/g, "&");
+    collectedLinks.push(
+      ...await page.locator('a[href*="blog.naver.com"], a[href*="m.blog.naver.com"]').evaluateAll((nodes) => nodes.map((node) => node.href)).catch(() => []),
+      ...[...searchHtml.matchAll(/https?:\/\/(?:m\.)?blog\.naver\.com\/[A-Za-z0-9_.%-]+\/[0-9]+/gi)].map((match) => match[0]),
+    );
+    await page.close();
+  }
+  const links = uniq(collectedLinks).filter((url) => !/PostList|BlogHome|Prologue/i.test(url)).slice(0, 12);
 
   const addressTokens = address.split(" ").filter((token) => token.length >= 2).slice(1, 4);
   for (const link of links) {
@@ -115,7 +144,8 @@ try {
       const htmlParts = await Promise.all(post.frames().map((frame) => frame.content().catch(() => "")));
       const blogHtml = htmlParts.join("\n").replace(/\\\//g, "/").replace(/&amp;/g, "&");
       const blogText = clean(blogHtml);
-      const isRelevant = blogText.includes(clean(name)) && (!addressTokens.length || addressTokens.some((token) => blogText.includes(token)));
+      const isRelevant = shortNames.some((candidate) => blogText.includes(clean(candidate)))
+        && (!addressTokens.length || addressTokens.some((token) => blogText.includes(token)) || (city && blogText.includes(city.replace(/시$/, ""))));
       if (isRelevant) {
         const found = [...blogHtml.matchAll(/https?:\/\/[^"'<>\s]+?\.(?:jpg|jpeg|png|webp)(?:\?[^"'<>\s]*)?/gi)].map((match) => match[0]);
         for (const url of found) {
