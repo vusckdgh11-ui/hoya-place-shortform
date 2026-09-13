@@ -85,7 +85,12 @@ for (const tabName of ["menu", "photo", "review/visitor"]) {
 
 const normalizedHtml = combined.replace(/\\\//g, "/").replace(/&amp;/g, "&");
 const imageMatches = [...normalizedHtml.matchAll(/https?:\/\/[^"'<>\s]+?\.(?:jpg|jpeg|png|webp)(?:\?[^"'<>\s]*)?/gi)].map((m) => m[0]);
-const images = uniq(imageMatches).filter((url) => /pstatic|naver|phinf/.test(url)).slice(0, 30);
+const images = uniq(imageMatches).filter((url) => {
+  const decoded = decodeURIComponent(url);
+  const isPlacePhoto = /(?:ldb-phinf|pup-review-phinf|myplace-phinf)\.pstatic\.net/i.test(decoded);
+  const isThumbnail = /[?&]type=f(?:48|84|120|152|167|180|192)_/i.test(url);
+  return isPlacePhoto && !isThumbnail && !/(?:avatar|profile|favicon|emoji)/i.test(decoded);
+}).slice(0, 30);
 const menuBlocks = [...normalizedHtml.matchAll(/"name"\s*:\s*"([^"\\]{2,50})"[\s\S]{0,300}?"price"\s*:\s*"?([0-9,]+)/g)].slice(0, 20);
 const menus = uniq(menuBlocks.map((m) => `${clean(m[1])}|${clean(m[2])}`)).map((row) => { const [menuName, price] = row.split("|"); return { name: menuName, price }; });
 const reviews = uniq([...normalizedHtml.matchAll(/"(?:reviewBody|body|text)"\s*:\s*"([^"\\]{8,220})"/g)].map((m) => clean(m[1].replace(/\\n/g, " ")))).slice(0, 30);
