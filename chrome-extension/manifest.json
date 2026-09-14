@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "HOYA 네이버 사진 수집기",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "HOYA Shortform에서 네이버 플레이스와 블로그 사진을 내 크롬으로 수집합니다.",
   "permissions": ["tabs"],
   "host_permissions": [
-    "https://hoya-place-shortform.vercel.app/*",
+    "https://*.vercel.app/*",
+    "https://*.chatgpt.site/*",
     "https://*.naver.com/*",
     "https://*.pstatic.net/*"
   ],
@@ -13,7 +14,7 @@
   "action": { "default_title": "HOYA 네이버 사진 수집기", "default_popup": "popup.html" },
   "content_scripts": [
     {
-      "matches": ["https://hoya-place-shortform.vercel.app/*"],
+      "matches": ["https://*.vercel.app/*", "https://*.chatgpt.site/*"],
       "js": ["site-bridge.js"],
       "run_at": "document_start"
     },
