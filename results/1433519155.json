@@ -1,0 +1,57 @@
+{
+  "id": "1433519155",
+  "naverId": "2052404229",
+  "name": "보리옥 본점",
+  "address": "경기 수원시 영통구 영통로200번길 99",
+  "category": "",
+  "images": [
+    "https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260323_25%2F1774275155686p9a7R_JPEG%2FScreenshot_20260323_225553_Gallery.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&type=w560_sharpen&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260323_142%2F1774275409356Sg15I_JPEG%2FScreenshot_20260323_230340_Gallery.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260318_74%2F1773802580135tJ318_JPEG%2FScreenshot_20260318_115510_Gallery.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260323_185%2F1774275513571QWGL1_JPEG%2FScreenshot_20260323_230145_Gallery.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260323_43%2F1774275697956rWbcC_JPEG%2FScreenshot_20260323_230343_Gallery.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260323_147%2F1774275754102rFtrX_JPEG%2FScreenshot_20260323_230346_Gallery.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260318_272%2F1773802595936bk52q_JPEG%2FScreenshot_20260318_115510_Gallery.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&type=w560_sharpen&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260324_287%2F17742802447276QvqW_JPEG%2F1000021679.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&type=w560_sharpen&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260324_232%2F1774279341526kFaz3_JPEG%2F1000021937.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&type=w560_sharpen&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260324_236%2F1774279341253kU2Hi_JPEG%2F1000021950.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&type=w560_sharpen&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260324_44%2F1774279341326DhROK_JPEG%2F1000021942.jpg"
+  ],
+  "placeImages": [
+    "https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260323_25%2F1774275155686p9a7R_JPEG%2FScreenshot_20260323_225553_Gallery.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&type=w560_sharpen&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260323_142%2F1774275409356Sg15I_JPEG%2FScreenshot_20260323_230340_Gallery.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260318_74%2F1773802580135tJ318_JPEG%2FScreenshot_20260318_115510_Gallery.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260323_185%2F1774275513571QWGL1_JPEG%2FScreenshot_20260323_230145_Gallery.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260323_43%2F1774275697956rWbcC_JPEG%2FScreenshot_20260323_230343_Gallery.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260323_147%2F1774275754102rFtrX_JPEG%2FScreenshot_20260323_230346_Gallery.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260318_272%2F1773802595936bk52q_JPEG%2FScreenshot_20260318_115510_Gallery.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&type=w560_sharpen&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260324_287%2F17742802447276QvqW_JPEG%2F1000021679.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&type=w560_sharpen&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260324_232%2F1774279341526kFaz3_JPEG%2F1000021937.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&type=w560_sharpen&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260324_236%2F1774279341253kU2Hi_JPEG%2F1000021950.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&type=w560_sharpen&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260324_44%2F1774279341326DhROK_JPEG%2F1000021942.jpg"
+  ],
+  "blogImages": [],
+  "menus": [
+    {
+      "name": "보리밥 정식",
+      "price": "13000"
+    },
+    {
+      "name": "보리밥 고등어 정식",
+      "price": "15000"
+    },
+    {
+      "name": "보리밥 고추장제육 정식",
+      "price": "16000"
+    },
+    {
+      "name": "보리밥 간장제육 정식",
+      "price": "16000"
+    }
+  ],
+  "reviews": [
+    "평소에는 사람들이 줄을 너무 많이 써서 갈 엄두가 안 났는데, 오전 10시 오픈 하는 걸 알게 돼서 도착하자마자 먹었습니다. 지인들로부터 나물은 물론 튀김 맛집이라는 소문을 많이 들어서요. 역시 너무 맛있습니다."
+  ],
+  "collectedAt": "2026-09-14T09:06:44.736Z",
+  "source": "naver-place-blog"
+}
