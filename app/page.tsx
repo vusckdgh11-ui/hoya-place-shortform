@@ -34,6 +34,8 @@ type Place = {
 type Menu = { name: string; price: string };
 type Scene = { type: string; text: string; seconds: number; image: string };
 type TypecastVoice = { id: string; name: string; label: string; originalName: string };
+type TransitionStyle = "cut" | "fade" | "slide" | "rise" | "zoom" | "wipe" | "flash";
+type SceneTiming = { start: number; seconds: number };
 type Step = "search" | "analyze" | "editor";
 type SearchResponse = { places?: Place[]; error?: string };
 type PlaceResponse = {
@@ -56,6 +58,15 @@ const bgmStyles: { id: BgmStyle; name: string }[] = [
   { id: "ambient", name: "고요한 앰비언트" },
   { id: "bright", name: "산뜻한 어쿠스틱" },
   { id: "none", name: "배경음 없음" },
+];
+const transitionStyles: { id: TransitionStyle; name: string }[] = [
+  { id: "cut", name: "바로 전환" },
+  { id: "fade", name: "부드러운 페이드" },
+  { id: "slide", name: "오른쪽에서 밀기" },
+  { id: "rise", name: "아래에서 올라오기" },
+  { id: "zoom", name: "줌 인" },
+  { id: "wipe", name: "와이프" },
+  { id: "flash", name: "화이트 플래시" },
 ];
 
 const defaultPlace: Place = {
@@ -152,12 +163,15 @@ export default function Home() {
   const [voicesError, setVoicesError] = useState("");
   const [bgmStyle, setBgmStyle] = useState<BgmStyle>("warm");
   const [bgmVolume, setBgmVolume] = useState(18);
+  const [transitionStyle, setTransitionStyle] = useState<TransitionStyle>("fade");
+  const [extensionBusy, setExtensionBusy] = useState(false);
   const previewAudio = useRef<{
     audio?: HTMLAudioElement;
     context?: AudioContext;
   } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const previewTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const extensionAcknowledged = useRef(false);
 
   const totalSeconds = useMemo(
     () => scenes.reduce((sum, scene) => sum + scene.seconds, 0),
@@ -200,10 +214,51 @@ export default function Home() {
 
   useEffect(() => { const timer = window.setTimeout(() => { void loadVoices(); }, 0); return () => window.clearTimeout(timer); }, []);
 
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== window || event.data?.source !== "hoya-naver-media-extension") return;
+      if (event.data.type === "collecting") {
+        extensionAcknowledged.current = true;
+        setExtensionBusy(true);
+        setStatus("크롬에서 네이버 플레이스·블로그 사진을 수집하고 있어요");
+      }
+      if (event.data.type === "media-result") {
+        setExtensionBusy(false);
+        const received = (event.data.images as string[] | undefined)?.filter((url) => typeof url === "string" && (url.startsWith("data:image/") || /^https?:/i.test(url))) || [];
+        if (!received.length) { setStatus("가져올 사진을 찾지 못했어요"); return; }
+        setImages((old) => {
+          const merged = [...old, ...received.filter((url) => !old.includes(url))].slice(0, 50);
+          setScenes((previous) => previous.map((scene, index) => ({ ...scene, image: scene.image || merged[index % Math.max(merged.length, 1)] || "" })));
+          return merged;
+        });
+        setPlaceImages((old) => [...old, ...received.filter((url) => !old.includes(url))].slice(-50));
+        setBlogImages((old) => [...old, ...received.filter((url) => !old.includes(url))].slice(-50));
+        setStatus(`네이버 플레이스·블로그 사진 ${received.length}장을 크롬에서 가져왔어요`);
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
   function ttsUrl(text: string) {
     const params = new URLSearchParams({ text });
     if (voiceId) { params.set("voiceId", voiceId); params.set("tempo", String(voiceTempo)); }
     return `/api/tts?${params}`;
+  }
+
+  function collectWithChrome() {
+    const businessName = selected.name || query.trim();
+    if (!businessName) { setStatus("먼저 업체를 선택해 주세요"); return; }
+    extensionAcknowledged.current = false;
+    setExtensionBusy(true);
+    setStatus("크롬 확장프로그램에 네이버 수집을 요청했어요");
+    window.postMessage({ source: "hoya-shortform-site", type: "collect-media", query: businessName }, window.location.origin);
+    window.setTimeout(() => {
+      if (!extensionAcknowledged.current) {
+        setExtensionBusy(false);
+        setStatus("크롬 확장을 설치한 뒤 다시 눌러 주세요");
+      }
+    }, 2200);
   }
 
   async function searchPlaces() {
@@ -339,14 +394,15 @@ export default function Home() {
     setActive(0);
   }
   function saveLocal() {
+    const savedImages = images.filter((image) => !image.startsWith("blob:") && !image.startsWith("data:"));
     localStorage.setItem(
       "hoya-shortform-last",
       JSON.stringify({
         place: selected,
         menus,
         reviews,
-        images: images.filter((x) => !x.startsWith("blob:")),
-        scenes,
+        images: savedImages,
+        scenes: scenes.map((scene) => ({ ...scene, image: scene.image.startsWith("blob:") || scene.image.startsWith("data:") ? "" : scene.image })),
       }),
     );
     setStatus("현재 프로젝트를 이 기기에 저장했어요");
@@ -359,17 +415,18 @@ export default function Home() {
       setPlaying(false);
       return;
     }
-    void previewFullAudio();
     setPlaying(true);
     setPreviewIndex(0);
-    let elapsed = 0;
+    const timing = await previewFullAudio();
+    const timeline = timing || scenes.reduce<SceneTiming[]>((all, scene) => {
+      const start = all.at(-1) ? all.at(-1)!.start + all.at(-1)!.seconds : 0;
+      all.push({ start, seconds: scene.seconds });
+      return all;
+    }, []);
+    const started = performance.now();
     previewTimer.current = setInterval(() => {
-      elapsed += 1;
-      let sum = 0;
-      const idx = scenes.findIndex((scene) => {
-        sum += scene.seconds;
-        return elapsed < sum;
-      });
+      const elapsed = (performance.now() - started) / 1000;
+      const idx = timeline.findIndex((scene) => elapsed < scene.start + scene.seconds);
       if (idx < 0) {
         if (previewTimer.current) clearInterval(previewTimer.current);
         stopAudioPreview();
@@ -409,6 +466,39 @@ export default function Home() {
     const w = mediaWidth * ratio;
     const h = mediaHeight * ratio;
     ctx.drawImage(media, (width - w) / 2, (height - h) / 2, w, h);
+  }
+
+  function drawSceneTransition(
+    ctx: CanvasRenderingContext2D,
+    previous: HTMLImageElement | HTMLVideoElement | null,
+    currentMedia: HTMLImageElement | HTMLVideoElement | null,
+    progress: number,
+    scale: number,
+  ) {
+    const draw = (media: HTMLImageElement | HTMLVideoElement | null, mediaScale = 1) => {
+      if (media) drawCover(ctx, media, 1080, 1920, mediaScale);
+    };
+    if (!previous || !currentMedia || transitionStyle === "cut" || progress >= 1) { draw(currentMedia, scale); return; }
+    if (transitionStyle === "fade") {
+      draw(previous, 1);
+      ctx.save(); ctx.globalAlpha = progress; draw(currentMedia, scale); ctx.restore();
+    } else if (transitionStyle === "slide") {
+      ctx.save(); ctx.translate(-1080 * progress, 0); draw(previous, 1); ctx.restore();
+      ctx.save(); ctx.translate(1080 * (1 - progress), 0); draw(currentMedia, scale); ctx.restore();
+    } else if (transitionStyle === "rise") {
+      ctx.save(); ctx.translate(0, -1920 * progress); draw(previous, 1); ctx.restore();
+      ctx.save(); ctx.translate(0, 1920 * (1 - progress)); draw(currentMedia, scale); ctx.restore();
+    } else if (transitionStyle === "zoom") {
+      draw(previous, 1);
+      ctx.save(); ctx.globalAlpha = progress; draw(currentMedia, 1.15 - 0.15 * progress); ctx.restore();
+    } else if (transitionStyle === "wipe") {
+      draw(previous, 1);
+      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, 1080 * progress, 1920); ctx.clip(); draw(currentMedia, scale); ctx.restore();
+    } else {
+      draw(previous, 1);
+      ctx.save(); ctx.globalAlpha = progress; draw(currentMedia, scale); ctx.restore();
+      ctx.save(); ctx.fillStyle = `rgba(255,255,255,${Math.sin(progress * Math.PI) * 0.72})`; ctx.fillRect(0, 0, 1080, 1920); ctx.restore();
+    }
   }
 
   function startBgm(
@@ -489,6 +579,22 @@ export default function Home() {
     previewAudio.current?.context?.close();
     previewAudio.current = null;
   }
+
+  async function loadSceneAudio(context: AudioContext) {
+    const buffers = await Promise.all(scenes.map(async (scene) => {
+      const response = await fetch(ttsUrl(scene.text));
+      if (!response.ok) throw new Error("음성 생성 실패");
+      return context.decodeAudioData(await response.arrayBuffer());
+    }));
+    let cursor = 0;
+    const timing = buffers.map((buffer) => {
+      const seconds = Math.max(0.8, buffer.duration);
+      const item = { start: cursor, seconds };
+      cursor += seconds;
+      return item;
+    });
+    return { buffers, timing, duration: cursor };
+  }
   async function previewVoice() {
     stopAudioPreview();
     const text =
@@ -511,19 +617,25 @@ export default function Home() {
     }, 8000);
   }
 
-  async function previewFullAudio() {
+  async function previewFullAudio(): Promise<SceneTiming[] | null> {
     stopAudioPreview();
-    if (!scenes.length) return;
+    if (!scenes.length) return null;
     try {
       const context = new AudioContext();
-      startBgm(context, context.destination, bgmStyle, bgmVolume, totalSeconds);
       previewAudio.current = { context };
-      const response = await fetch(ttsUrl(scenes.map((scene) => scene.text).join(". ")));
-      if (!response.ok) throw new Error("음성 미리듣기 실패");
-      const buffer = await context.decodeAudioData(await response.arrayBuffer());
-      const source = context.createBufferSource(); source.buffer = buffer;
-      const gain = context.createGain(); gain.gain.value = 1; source.connect(gain).connect(context.destination); source.start();
-    } catch { setStatus("음성 미리듣기를 시작하지 못했어요"); }
+      const { buffers, timing, duration } = await loadSceneAudio(context);
+      startBgm(context, context.destination, bgmStyle, bgmVolume, duration);
+      buffers.forEach((buffer, index) => {
+        const source = context.createBufferSource();
+        source.buffer = buffer;
+        source.connect(context.destination);
+        source.start(context.currentTime + timing[index].start);
+      });
+      return timing;
+    } catch {
+      setStatus("음성 미리듣기를 시작하지 못했어요");
+      return null;
+    }
   }
 
   async function renderVideo() {
@@ -540,19 +652,21 @@ export default function Home() {
         s.image ? loadMedia(s.image).catch(() => null) : Promise.resolve(null),
       ),
     );
-    const narration = scenes.map((s) => s.text).join(". ");
-    let audioBuffer: AudioBuffer | null = null;
+    let audioBuffers: AudioBuffer[] = [];
+    let timing: SceneTiming[] = scenes.reduce<SceneTiming[]>((all, scene) => {
+      const start = all.at(-1) ? all.at(-1)!.start + all.at(-1)!.seconds : 0;
+      all.push({ start, seconds: scene.seconds });
+      return all;
+    }, []);
     let audioContext: AudioContext | null = null;
     let destination: MediaStreamAudioDestinationNode | null = null;
     try {
-      const audioRes = await fetch(
-        ttsUrl(narration),
-      );
-      const bytes = await audioRes.arrayBuffer();
       audioContext = new AudioContext();
-      audioBuffer = await audioContext.decodeAudioData(bytes);
       destination = audioContext.createMediaStreamDestination();
-      startBgm(audioContext, destination, bgmStyle, bgmVolume, totalSeconds);
+      const renderedAudio = await loadSceneAudio(audioContext);
+      audioBuffers = renderedAudio.buffers;
+      timing = renderedAudio.timing;
+      startBgm(audioContext, destination, bgmStyle, bgmVolume, renderedAudio.duration);
     } catch {
       setStatus("음성 연결 없이 영상만 렌더링합니다");
     }
@@ -589,43 +703,35 @@ export default function Home() {
       };
     });
     recorder.start(1000);
-    if (audioBuffer && audioContext && destination) {
+    if (audioContext && destination) audioBuffers.forEach((buffer, index) => {
       const source = audioContext.createBufferSource();
-      source.buffer = audioBuffer;
-      const voiceGain = audioContext.createGain();
-      voiceGain.gain.value = 1;
-      source.connect(voiceGain).connect(destination);
-      source.start();
-    }
+      source.buffer = buffer;
+      source.connect(destination);
+      source.start(audioContext.currentTime + timing[index].start);
+    });
     loaded.forEach((media) => { if (media instanceof HTMLVideoElement) { media.currentTime = 0; void media.play(); } });
-    const duration = totalSeconds * 1000;
+    const renderSeconds = timing.at(-1) ? timing.at(-1)!.start + timing.at(-1)!.seconds : totalSeconds;
+    const duration = renderSeconds * 1000;
     const started = performance.now();
     await new Promise<void>((resolve) => {
       const frame = () => {
         const elapsed = performance.now() - started;
         const seconds = elapsed / 1000;
-        let cursor = 0;
-        let index = 0;
-        for (let i = 0; i < scenes.length; i++) {
-          if (seconds < cursor + scenes[i].seconds) {
-            index = i;
-            break;
-          }
-          cursor += scenes[i].seconds;
-          index = i;
-        }
+        const foundIndex = timing.findIndex((item) => seconds < item.start + item.seconds);
+        const index = foundIndex < 0 ? scenes.length - 1 : foundIndex;
+        const cursor = timing[index]?.start || 0;
         const scene = scenes[index];
         ctx.fillStyle = "#17131c";
         ctx.fillRect(0, 0, 1080, 1920);
         const img = loaded[index];
-        if (img)
-          drawCover(
-            ctx,
-            img,
-            1080,
-            1920,
-            1 + ((seconds - cursor) / Math.max(scene.seconds, 1)) * 0.05,
-          );
+        const transitionProgress = index > 0 ? Math.min(1, Math.max(0, (seconds - cursor) / 0.42)) : 1;
+        drawSceneTransition(
+          ctx,
+          loaded[index - 1] || null,
+          img,
+          transitionProgress,
+          1 + ((seconds - cursor) / Math.max(timing[index]?.seconds || scene.seconds, 1)) * 0.05,
+        );
         const gradient = ctx.createLinearGradient(0, 900, 0, 1920);
         gradient.addColorStop(0, "rgba(0,0,0,0)");
         gradient.addColorStop(1, "rgba(0,0,0,.88)");
@@ -662,8 +768,6 @@ export default function Home() {
           ctx.fillStyle = "#fff";
           ctx.fillText(value, 72, y + i * 92);
         });
-        ctx.fillStyle = "#b794f6";
-        ctx.fillRect(72, y + lines.length * 92 + 8, 170, 12);
         setProgress(Math.min(99, Math.round((elapsed / duration) * 100)));
         if (elapsed >= duration) resolve();
         else requestAnimationFrame(frame);
@@ -953,6 +1057,22 @@ export default function Home() {
                   className="hidden"
                 />
               </label>
+              <button
+                onClick={collectWithChrome}
+                disabled={extensionBusy}
+                className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl bg-violet-500 px-3 py-3 text-sm font-black text-white disabled:opacity-60"
+              >
+                {extensionBusy ? <LoaderCircle className="animate-spin" size={17} /> : <Store size={17} />}
+                크롬으로 네이버 사진 자동 수집
+              </button>
+              <a
+                href="/downloads/hoya-naver-media-importer.zip"
+                download
+                className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[.04] px-3 py-2.5 text-xs font-bold text-white/75"
+              >
+                <Download size={14} /> 크롬 확장 설치하기
+              </a>
+              <p className="mb-3 text-[10px] leading-4 text-white/35">처음 설치한 뒤 이 페이지를 한 번 새로고침하세요. 이후 업체명을 기준으로 네이버 플레이스와 블로그를 크롬에서 자동 수집하며, 사진은 서버에 저장하지 않습니다.</p>
               <div className="grid max-h-[640px] grid-cols-3 gap-2 overflow-auto pr-1">
                 {images.map((url, i) => (
                   <div
@@ -1010,7 +1130,6 @@ export default function Home() {
                     <p className="text-2xl font-black leading-tight tracking-[-.045em] drop-shadow-xl">
                       {current?.text}
                     </p>
-                    <div className="mt-3 h-1 w-16 rounded-full bg-violet-300" />
                   </div>
                 </div>
               </div>
@@ -1095,7 +1214,9 @@ export default function Home() {
                     <label className="block text-xs font-bold text-white/45">배경음</label>
                     <div className="flex gap-2"><select value={bgmStyle} onChange={(e) => setBgmStyle(e.target.value as BgmStyle)} className="min-w-0 flex-1 rounded-lg border border-white/10 bg-[#151720] px-2 py-2 text-xs">{bgmStyles.map((bgm) => <option key={bgm.id} value={bgm.id}>{bgm.name}</option>)}</select><button onClick={previewBgm} className="rounded-lg bg-white/10 px-3 text-xs font-bold">미리듣기</button></div>
                     <div className="flex items-center gap-2"><span className="text-[11px] text-white/40">BGM {bgmVolume}%</span><input aria-label="배경음 볼륨" type="range" min="0" max="45" value={bgmVolume} onChange={(e) => setBgmVolume(Number(e.target.value))} className="flex-1 accent-violet-400" /></div>
-                    <p className="text-[10px] leading-4 text-white/30">영상 미리보기 재생에도 선택한 성우와 배경음이 함께 나옵니다. 직접 추가한 영상은 무음 배경으로 사용됩니다.</p>
+                    <label className="block text-xs font-bold text-white/45">장면 전환 효과</label>
+                    <select value={transitionStyle} onChange={(e) => setTransitionStyle(e.target.value as TransitionStyle)} className="w-full rounded-lg border border-white/10 bg-[#151720] px-2 py-2 text-xs">{transitionStyles.map((transition) => <option key={transition.id} value={transition.id}>{transition.name}</option>)}</select>
+                    <p className="text-[10px] leading-4 text-white/30">성우 속도에 맞춰 장면 길이가 자동 조정됩니다. 전환 효과는 영상 만들기 결과에 적용됩니다. 직접 추가한 영상은 무음 배경으로 사용됩니다.</p>
                   </div>
                 </div>
               )}
