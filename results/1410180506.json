@@ -1,0 +1,105 @@
+{
+  "id": "1410180506",
+  "naverId": "1367892303",
+  "name": "엄마네김치찜",
+  "address": "경기 오산시 궐리사로 64",
+  "category": "",
+  "images": [
+    "https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_130%2F17053866026002NAeY_JPEG%2FM4_03673-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&type=w560_sharpen&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_188%2F1705386602724txgDG_JPEG%2FM4_03719-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_70%2F1705388028416B3XAu_JPEG%2FM4_03457-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_93%2F1705388049130emIRd_JPEG%2FM4_03457-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_252%2F17053880422332GGpY_JPEG%2FM4_03457-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_40%2F1705388084621HDykX_JPEG%2FM4_03457-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_204%2F1705388091565bvYOr_JPEG%2FM4_03457-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_291%2F17053881103690m6uc_JPEG%2FM4_03457-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240113_31%2F1705150097316HGaeM_JPEG%2FKakaoTalk_20230223_211059942.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240113_232%2F1705150272709pvfvH_JPEG%2FKakaoTalk_20230223_211059942.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240113_59%2F1705150291058T9Fqr_JPEG%2FKakaoTalk_20230223_211059942.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_11%2F1705388059634VHlnl_JPEG%2FM4_03466-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_281%2F1705388068001k4m0P_JPEG%2FM4_03466-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_250%2F1705388075469hcTBJ_JPEG%2FM4_03466-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260617_180%2F1781698700378cWwXP_JPEG%2FKakaoTalk_20260616_204106167.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_54%2F1705387029903s7StT_JPEG%2FM4_03457-01.jpg"
+  ],
+  "placeImages": [
+    "https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_130%2F17053866026002NAeY_JPEG%2FM4_03673-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&type=w560_sharpen&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_188%2F1705386602724txgDG_JPEG%2FM4_03719-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_70%2F1705388028416B3XAu_JPEG%2FM4_03457-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_93%2F1705388049130emIRd_JPEG%2FM4_03457-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_252%2F17053880422332GGpY_JPEG%2FM4_03457-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_40%2F1705388084621HDykX_JPEG%2FM4_03457-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_204%2F1705388091565bvYOr_JPEG%2FM4_03457-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_291%2F17053881103690m6uc_JPEG%2FM4_03457-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240113_31%2F1705150097316HGaeM_JPEG%2FKakaoTalk_20230223_211059942.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240113_232%2F1705150272709pvfvH_JPEG%2FKakaoTalk_20230223_211059942.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240113_59%2F1705150291058T9Fqr_JPEG%2FKakaoTalk_20230223_211059942.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_11%2F1705388059634VHlnl_JPEG%2FM4_03466-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_281%2F1705388068001k4m0P_JPEG%2FM4_03466-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_250%2F1705388075469hcTBJ_JPEG%2FM4_03466-01.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260617_180%2F1781698700378cWwXP_JPEG%2FKakaoTalk_20260616_204106167.jpg",
+    "https://search.pstatic.net/common/?autoRotate=true&quality=95&type=f320_320&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240116_54%2F1705387029903s7StT_JPEG%2FM4_03457-01.jpg"
+  ],
+  "blogImages": [],
+  "menus": [
+    {
+      "name": "삼겹,살코기 반반 김치찜 소",
+      "price": "29000"
+    },
+    {
+      "name": "삼겹 살코기 반반 김치찜 중",
+      "price": "38000"
+    },
+    {
+      "name": "삼겹,살코기 반반 김치찜 대",
+      "price": "46000"
+    },
+    {
+      "name": "삼겹살 김치찜 소",
+      "price": "29000"
+    },
+    {
+      "name": "삼겹살 김치찜 중",
+      "price": "38000"
+    },
+    {
+      "name": "삼겹살 김치찜 대",
+      "price": "46000"
+    },
+    {
+      "name": "살코기 김치찜 소",
+      "price": "28000"
+    },
+    {
+      "name": "살코기 김치찜 중",
+      "price": "37000"
+    },
+    {
+      "name": "살코기 김치찜 대",
+      "price": "45000"
+    },
+    {
+      "name": "김치찌개 소",
+      "price": "30000"
+    },
+    {
+      "name": "김치찌개 중",
+      "price": "36000"
+    },
+    {
+      "name": "김치찌개 대",
+      "price": "43000"
+    }
+  ],
+  "reviews": [
+    "날씨가 선선해지니까 뜨끈한게 먹고 싶어서 엄마네 김치찜 방문했어요! 김치찜에 들어있는 김치도, 고기도 양이 푸짐하게 나와서 좋더라구요! 밥이랑 라면사리도 제공되서 좋구요^^ 음식 맛도 좋고 얼큰하면서 칼칼한 김치찜에 밥 비벼먹으니까 진짜 밥도둑이 따로 없네요 ㅎㅎㅎ",
+    "멀리서 저녁먹으러 왔는데 김치찜이 맛있었어요! 소짜리 양이 정말 많아서 배불리 먹고 남겼어요 김치는 자극적인 신 김치 맛입니다! 친절하게 응대해주셔서 기분 좋게 먹고갑니다 잘 먹었습니다😋",
+    "여자친구랑 김치찜 먹고싶어서 방문했는데 너무 맛있고 양도 많아요!! 공기밥 무료인 것도 좋아요",
+    "매일 배달로만 시켜먹다가 와서 먹는제 고기도 통으로 나오고 쌈채소랑 라면사리에 밥도 무한리필이라 너무 만족하고 배부르게 먹고겁니다. 치즈 계란말이 맛도리입니다!!!",
+    "맛있어서 먹다가 사진 깜빡.. 작은거 시켜도 양 많고 기본 밥,라면사리도 주세요 ㅎㅎ 여기만큼 김치찜 잘하는 곳 요즘 찾기 어렵습니다 ㅜㅜ",
+    "너무 맛있네요 김치도 잘익었구요",
+    "양 많고 쾌적한 장소에서 시원한 김치찜 식사중~"
+  ],
+  "collectedAt": "2026-09-14T06:06:32.095Z",
+  "source": "naver-place-blog"
+}
