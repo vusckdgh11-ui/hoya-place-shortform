@@ -33,6 +33,7 @@ type Place = {
 };
 type Menu = { name: string; price: string };
 type Scene = { type: string; text: string; seconds: number; image: string };
+type TypecastVoice = { id: string; name: string; label: string; originalName: string };
 type Step = "search" | "analyze" | "editor";
 type SearchResponse = { places?: Place[]; error?: string };
 type PlaceResponse = {
@@ -44,21 +45,12 @@ type PlaceResponse = {
   pending?: boolean;
   error?: string;
 };
-type VoiceStyle = "warm" | "natural" | "bright" | "calm";
-type BgmStyle = "warm" | "lofi" | "ambient" | "bright" | "none";
-
-const voiceStyles: {
-  id: VoiceStyle;
-  name: string;
-  rate: number;
-  detune: number;
-}[] = [
-  { id: "warm", name: "따뜻한 성우", rate: 0.96, detune: -170 },
-  { id: "natural", name: "자연스러운 성우", rate: 1, detune: 0 },
-  { id: "bright", name: "밝은 성우", rate: 1.06, detune: 150 },
-  { id: "calm", name: "차분한 성우", rate: 0.9, detune: -80 },
-];
+type BgmStyle = "pop" | "vlog" | "funk" | "dance" | "warm" | "lofi" | "ambient" | "bright" | "none";
 const bgmStyles: { id: BgmStyle; name: string }[] = [
+  { id: "pop", name: "트렌디 팝 쇼츠" },
+  { id: "vlog", name: "업비트 브이로그" },
+  { id: "funk", name: "펑키 그루브" },
+  { id: "dance", name: "댄스 하우스" },
   { id: "warm", name: "따뜻한 피아노" },
   { id: "lofi", name: "잔잔한 로파이" },
   { id: "ambient", name: "고요한 앰비언트" },
@@ -88,6 +80,10 @@ function proxyImage(url: string) {
   return url.startsWith("blob:") || url.startsWith("data:")
     ? url
     : `/api/image?url=${encodeURIComponent(url)}`;
+}
+
+function isVideo(url: string, videos: string[]) {
+  return videos.includes(url) || /\.(?:mp4|webm|mov|m4v)(?:$|[?#])/i.test(url);
 }
 
 function makeScenes(
@@ -136,6 +132,7 @@ export default function Home() {
   const [menus, setMenus] = useState<Menu[]>([]);
   const [reviews, setReviews] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);
+  const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [placeImages, setPlaceImages] = useState<string[]>([]);
   const [blogImages, setBlogImages] = useState<string[]>([]);
   const [scenes, setScenes] = useState<Scene[]>([]);
@@ -149,7 +146,10 @@ export default function Home() {
   const [sourceState, setSourceState] = useState<"idle" | "ok" | "partial">(
     "idle",
   );
-  const [voiceStyle, setVoiceStyle] = useState<VoiceStyle>("warm");
+  const [voices, setVoices] = useState<TypecastVoice[]>([]);
+  const [voiceId, setVoiceId] = useState("");
+  const [voiceTempo, setVoiceTempo] = useState(1);
+  const [voicesError, setVoicesError] = useState("");
   const [bgmStyle, setBgmStyle] = useState<BgmStyle>("warm");
   const [bgmVolume, setBgmVolume] = useState(18);
   const previewAudio = useRef<{
@@ -182,9 +182,29 @@ export default function Home() {
   useEffect(
     () => () => {
       if (previewTimer.current) clearInterval(previewTimer.current);
+      stopAudioPreview();
     },
     [],
   );
+
+  async function loadVoices() {
+    setVoicesError("");
+    try {
+      const response = await fetch("/api/voices");
+      const data = await response.json() as { voices?: TypecastVoice[]; error?: string };
+      if (!response.ok || !data.voices?.length) throw new Error(data.error || "음성 목록을 불러오지 못했습니다");
+      setVoices(data.voices);
+      setVoiceId((current) => current || data.voices![0].id);
+    } catch (error) { setVoicesError(error instanceof Error ? error.message : "음성 목록을 불러오지 못했습니다"); }
+  }
+
+  useEffect(() => { const timer = window.setTimeout(() => { void loadVoices(); }, 0); return () => window.clearTimeout(timer); }, []);
+
+  function ttsUrl(text: string) {
+    const params = new URLSearchParams({ text });
+    if (voiceId) { params.set("voiceId", voiceId); params.set("tempo", String(voiceTempo)); }
+    return `/api/tts?${params}`;
+  }
 
   async function searchPlaces() {
     if (!query.trim()) return;
@@ -213,6 +233,7 @@ export default function Home() {
 
   async function analyze(place: Place) {
     setSelected(place);
+    setVideoUrls([]);
     setStep("analyze");
     setLoading(true);
     setProgress(12);
@@ -277,9 +298,11 @@ export default function Home() {
     setPreviewIndex(0);
   }
   function addImages(event: ChangeEvent<HTMLInputElement>) {
-    const next = Array.from(event.target.files ?? []).map((file) =>
-      URL.createObjectURL(file),
-    );
+    const files = Array.from(event.target.files ?? []).slice(0, Math.max(0, 50 - images.length));
+    const uploaded = files.map((file) => ({ url: URL.createObjectURL(file), isVideo: file.type.startsWith("video/") }));
+    const next = uploaded.map((file) => file.url);
+    const videos = uploaded.filter((file) => file.isVideo).map((file) => file.url);
+    setVideoUrls((old) => [...old, ...videos]);
     const merged = [...images, ...next].slice(0, 50);
     setImages(merged);
     setScenes((old) =>
@@ -288,6 +311,7 @@ export default function Home() {
         image: scene.image || merged[i % merged.length] || "",
       })),
     );
+    event.target.value = "";
   }
   function updateScene(index: number, patch: Partial<Scene>) {
     setScenes((old) =>
@@ -299,6 +323,7 @@ export default function Home() {
     setImages(next);
     setPlaceImages((old) => old.filter((image) => image !== url));
     setBlogImages((old) => old.filter((image) => image !== url));
+    setVideoUrls((old) => old.filter((video) => video !== url));
     setScenes((old) =>
       old.map((scene, i) =>
         scene.image === url
@@ -327,12 +352,14 @@ export default function Home() {
     setStatus("현재 프로젝트를 이 기기에 저장했어요");
   }
 
-  function togglePreview() {
+  async function togglePreview() {
     if (playing) {
       if (previewTimer.current) clearInterval(previewTimer.current);
+      stopAudioPreview();
       setPlaying(false);
       return;
     }
+    void previewFullAudio();
     setPlaying(true);
     setPreviewIndex(0);
     let elapsed = 0;
@@ -345,13 +372,21 @@ export default function Home() {
       });
       if (idx < 0) {
         if (previewTimer.current) clearInterval(previewTimer.current);
+        stopAudioPreview();
         setPlaying(false);
         setPreviewIndex(0);
       } else setPreviewIndex(idx);
     }, 1000);
   }
 
-  async function loadImage(url: string) {
+  async function loadMedia(url: string): Promise<HTMLImageElement | HTMLVideoElement> {
+    if (isVideo(url, videoUrls)) {
+      return new Promise<HTMLVideoElement>((resolve, reject) => {
+        const video = document.createElement("video");
+        video.src = url; video.muted = true; video.loop = true; video.playsInline = true;
+        video.onloadeddata = () => resolve(video); video.onerror = () => reject(new Error("영상 로드 실패"));
+      });
+    }
     return new Promise<HTMLImageElement>((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = "anonymous";
@@ -363,15 +398,17 @@ export default function Home() {
 
   function drawCover(
     ctx: CanvasRenderingContext2D,
-    img: HTMLImageElement,
+    media: HTMLImageElement | HTMLVideoElement,
     width: number,
     height: number,
     scale = 1,
   ) {
-    const ratio = Math.max(width / img.width, height / img.height) * scale;
-    const w = img.width * ratio;
-    const h = img.height * ratio;
-    ctx.drawImage(img, (width - w) / 2, (height - h) / 2, w, h);
+    const mediaWidth = media instanceof HTMLVideoElement ? media.videoWidth : media.width;
+    const mediaHeight = media instanceof HTMLVideoElement ? media.videoHeight : media.height;
+    const ratio = Math.max(width / mediaWidth, height / mediaHeight) * scale;
+    const w = mediaWidth * ratio;
+    const h = mediaHeight * ratio;
+    ctx.drawImage(media, (width - w) / 2, (height - h) / 2, w, h);
   }
 
   function startBgm(
@@ -383,6 +420,10 @@ export default function Home() {
   ) {
     if (style === "none" || volume <= 0) return;
     const chords: Record<Exclude<BgmStyle, "none">, number[][]> = {
+      pop: [[261.6, 329.6, 392], [220, 277.2, 329.6], [174.6, 220, 261.6], [196, 246.9, 293.7]],
+      vlog: [[293.7, 369.9, 440], [261.6, 329.6, 392], [220, 277.2, 329.6], [246.9, 311.1, 370]],
+      funk: [[220, 261.6, 329.6], [246.9, 293.7, 370], [196, 246.9, 293.7], [220, 277.2, 329.6]],
+      dance: [[261.6, 329.6, 392], [293.7, 370, 440], [220, 277.2, 329.6], [246.9, 311.1, 370]],
       warm: [
         [261.6, 329.6, 392],
         [220, 261.6, 329.6],
@@ -436,6 +477,11 @@ export default function Home() {
         oscillator.start(context.currentTime + t);
         oscillator.stop(context.currentTime + Math.min(t + 4.1, duration));
       });
+    const bpm = style === "dance" ? 126 : style === "pop" ? 118 : style === "vlog" ? 112 : style === "funk" ? 104 : 84;
+    const beat = 60 / bpm;
+    const hasBeat = ["pop", "vlog", "funk", "dance"].includes(style);
+    const noise = (start: number, length: number, gainValue: number) => { const buffer = context.createBuffer(1, Math.ceil(context.sampleRate * length), context.sampleRate); const channel = buffer.getChannelData(0); for (let i = 0; i < channel.length; i++) channel[i] = Math.random() * 2 - 1; const source = context.createBufferSource(); const gain = context.createGain(); gain.gain.setValueAtTime(gainValue, start); gain.gain.exponentialRampToValueAtTime(.001, start + length); source.buffer = buffer; source.connect(gain).connect(master); source.start(start); };
+    if (hasBeat) for (let t = 0; t < duration; t += beat) { const at = context.currentTime + t; const kick = context.createOscillator(); const kickGain = context.createGain(); kick.frequency.setValueAtTime(120, at); kick.frequency.exponentialRampToValueAtTime(45, at + .13); kickGain.gain.setValueAtTime(.34, at); kickGain.gain.exponentialRampToValueAtTime(.001, at + .14); kick.connect(kickGain).connect(master); kick.start(at); kick.stop(at + .15); if (Math.round(t / beat) % 4 === 1 || Math.round(t / beat) % 4 === 3) noise(at, .12, .12); noise(at + beat / 2, .035, .035); }
   }
 
   function stopAudioPreview() {
@@ -448,10 +494,7 @@ export default function Home() {
     const text =
       scenes[active]?.text ||
       `${selected.name}, 오늘 꼭 가봐야 할 맛집을 소개합니다`;
-    const style = voiceStyles.find((item) => item.id === voiceStyle)!;
-    const audio = new Audio(`/api/tts?text=${encodeURIComponent(text)}`);
-    audio.playbackRate = style.rate;
-    audio.preservesPitch = false;
+    const audio = new Audio(ttsUrl(text));
     previewAudio.current = { audio };
     await audio.play();
   }
@@ -468,6 +511,21 @@ export default function Home() {
     }, 8000);
   }
 
+  async function previewFullAudio() {
+    stopAudioPreview();
+    if (!scenes.length) return;
+    try {
+      const context = new AudioContext();
+      startBgm(context, context.destination, bgmStyle, bgmVolume, totalSeconds);
+      previewAudio.current = { context };
+      const response = await fetch(ttsUrl(scenes.map((scene) => scene.text).join(". ")));
+      if (!response.ok) throw new Error("음성 미리듣기 실패");
+      const buffer = await context.decodeAudioData(await response.arrayBuffer());
+      const source = context.createBufferSource(); source.buffer = buffer;
+      const gain = context.createGain(); gain.gain.value = 1; source.connect(gain).connect(context.destination); source.start();
+    } catch { setStatus("음성 미리듣기를 시작하지 못했어요"); }
+  }
+
   async function renderVideo() {
     if (!scenes.length || !canvasRef.current) return;
     setStatus("성우 음성과 영상을 준비하고 있어요");
@@ -479,7 +537,7 @@ export default function Home() {
     if (!ctx) return;
     const loaded = await Promise.all(
       scenes.map((s) =>
-        s.image ? loadImage(s.image).catch(() => null) : Promise.resolve(null),
+        s.image ? loadMedia(s.image).catch(() => null) : Promise.resolve(null),
       ),
     );
     const narration = scenes.map((s) => s.text).join(". ");
@@ -488,7 +546,7 @@ export default function Home() {
     let destination: MediaStreamAudioDestinationNode | null = null;
     try {
       const audioRes = await fetch(
-        `/api/tts?text=${encodeURIComponent(narration)}`,
+        ttsUrl(narration),
       );
       const bytes = await audioRes.arrayBuffer();
       audioContext = new AudioContext();
@@ -532,16 +590,14 @@ export default function Home() {
     });
     recorder.start(1000);
     if (audioBuffer && audioContext && destination) {
-      const style = voiceStyles.find((item) => item.id === voiceStyle)!;
       const source = audioContext.createBufferSource();
       source.buffer = audioBuffer;
-      source.playbackRate.value = style.rate;
-      source.detune.value = style.detune;
       const voiceGain = audioContext.createGain();
       voiceGain.gain.value = 1;
       source.connect(voiceGain).connect(destination);
       source.start();
     }
+    loaded.forEach((media) => { if (media instanceof HTMLVideoElement) { media.currentTime = 0; void media.play(); } });
     const duration = totalSeconds * 1000;
     const started = performance.now();
     await new Promise<void>((resolve) => {
@@ -616,6 +672,7 @@ export default function Home() {
     });
     recorder.stop();
     await done;
+    loaded.forEach((media) => { if (media instanceof HTMLVideoElement) media.pause(); });
     if (audioContext) await audioContext.close();
     setProgress(100);
     setStatus("영상 다운로드가 완료됐어요");
@@ -883,15 +940,15 @@ export default function Home() {
           <div className="grid gap-4 xl:grid-cols-[330px_minmax(0,1fr)_390px]">
             <aside className="rounded-2xl border border-white/10 bg-white/[.035] p-4">
               <div className="mb-3 flex items-center justify-between">
-                <b className="text-sm">사진 보관함</b>
-                <span className="text-xs text-white/35">{images.length}장</span>
+                <b className="text-sm">사진·영상 보관함</b>
+                <span className="text-xs text-white/35">사진 {images.length - videoUrls.length}장 · 영상 {videoUrls.length}개</span>
               </div>
               <label className="mb-3 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-violet-400/35 bg-violet-400/[.06] py-3 text-sm font-bold text-violet-200">
-                <ImagePlus size={17} /> 내 사진 추가
+                <ImagePlus size={17} /> 내 사진/영상 추가
                 <input
                   type="file"
                   multiple
-                  accept="image/*"
+                  accept="image/*,video/mp4,video/webm,video/quicktime"
                   onChange={addImages}
                   className="hidden"
                 />
@@ -902,8 +959,8 @@ export default function Home() {
                     key={`${url}-${i}`}
                     className={`relative aspect-square overflow-hidden rounded-lg border-2 ${scenes[active]?.image === url ? "border-violet-400" : "border-transparent"}`}
                   >
-                    <button onClick={() => updateScene(active, { image: url })} className="h-full w-full"><img src={proxyImage(url)} alt={`사진 ${i + 1}`} onError={() => removeImage(url)} className="h-full w-full object-cover" /></button>
-                    <span className="absolute bottom-1 left-1 rounded bg-black/65 px-1.5 py-0.5 text-[9px] font-bold">{blogImages.includes(url) ? "블로그" : placeImages.includes(url) ? "플레이스" : "직접"}</span>
+                    <button onClick={() => updateScene(active, { image: url })} className="h-full w-full">{isVideo(url, videoUrls) ? <video src={url} muted playsInline preload="metadata" className="h-full w-full object-cover" /> : <img src={proxyImage(url)} alt={`사진 ${i + 1}`} onError={() => removeImage(url)} className="h-full w-full object-cover" />}</button>
+                    <span className="absolute bottom-1 left-1 rounded bg-black/65 px-1.5 py-0.5 text-[9px] font-bold">{isVideo(url, videoUrls) ? "내 영상" : blogImages.includes(url) ? "블로그" : placeImages.includes(url) ? "플레이스" : "직접"}</span>
                     <button onClick={() => removeImage(url)} aria-label="사진 삭제" className="absolute left-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/70 text-white/70 hover:bg-red-500"><Trash2 size={11} /></button>
                     {scenes[active]?.image === url && (
                       <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-violet-500">
@@ -932,7 +989,9 @@ export default function Home() {
               </div>
               <div className="mx-auto max-w-[350px]">
                 <div className="relative aspect-[9/16] overflow-hidden rounded-[26px] bg-[#261c2c] shadow-2xl">
-                  {current?.image ? (
+                  {current?.image ? isVideo(current.image, videoUrls) ? (
+                    <video key={current.image} src={current.image} autoPlay muted loop playsInline className="h-full w-full object-cover" />
+                  ) : (
                     <img
                       src={proxyImage(current.image)}
                       alt=""
@@ -961,6 +1020,8 @@ export default function Home() {
                     key={i}
                     onClick={() => {
                       setActive(i);
+                      if (previewTimer.current) clearInterval(previewTimer.current);
+                      stopAudioPreview();
                       setPlaying(false);
                     }}
                     className={`h-2 flex-1 rounded-full ${active === i || (playing && previewIndex === i) ? "bg-violet-400" : "bg-white/12"}`}
@@ -1027,12 +1088,14 @@ export default function Home() {
                     <Volume2 size={14} /> 전체 자막을 한국어 성우로 자동 합성
                   </div>
                   <div className="mt-4 space-y-3 rounded-xl bg-black/20 p-3">
-                    <label className="block text-xs font-bold text-white/45">무료 TTS 음색</label>
-                    <div className="flex gap-2"><select value={voiceStyle} onChange={(e) => setVoiceStyle(e.target.value as VoiceStyle)} className="min-w-0 flex-1 rounded-lg border border-white/10 bg-[#151720] px-2 py-2 text-xs">{voiceStyles.map((voice) => <option key={voice.id} value={voice.id}>{voice.name}</option>)}</select><button onClick={previewVoice} className="rounded-lg bg-white/10 px-3 text-xs font-bold">미리듣기</button></div>
-                    <label className="block text-xs font-bold text-white/45">잔잔한 배경음</label>
+                    <label className="block text-xs font-bold text-white/45">타입캐스트 성우</label>
+                    <div className="flex gap-2"><select value={voiceId} onChange={(e) => setVoiceId(e.target.value)} className="min-w-0 flex-1 rounded-lg border border-white/10 bg-[#151720] px-2 py-2 text-xs" disabled={!voices.length}>{voices.length ? voices.map((voice) => <option key={voice.id} value={voice.id}>{voice.label}</option>) : <option>음성 목록 불러오는 중</option>}</select><button onClick={previewVoice} className="rounded-lg bg-white/10 px-3 text-xs font-bold">미리듣기</button></div>
+                    <div className="flex items-center gap-2"><span className="text-[11px] text-white/40">말하기 속도</span><input aria-label="말하기 속도" type="range" min="0.8" max="1.2" step="0.05" value={voiceTempo} onChange={(e) => setVoiceTempo(Number(e.target.value))} className="flex-1 accent-violet-400" /><span className="w-7 text-right text-[11px] text-white/40">{voiceTempo.toFixed(2)}</span><button onClick={loadVoices} className="text-[11px] text-violet-200">새로고침</button></div>
+                    {voicesError && <p className="text-[10px] text-amber-200">음성 목록: {voicesError}</p>}
+                    <label className="block text-xs font-bold text-white/45">배경음</label>
                     <div className="flex gap-2"><select value={bgmStyle} onChange={(e) => setBgmStyle(e.target.value as BgmStyle)} className="min-w-0 flex-1 rounded-lg border border-white/10 bg-[#151720] px-2 py-2 text-xs">{bgmStyles.map((bgm) => <option key={bgm.id} value={bgm.id}>{bgm.name}</option>)}</select><button onClick={previewBgm} className="rounded-lg bg-white/10 px-3 text-xs font-bold">미리듣기</button></div>
                     <div className="flex items-center gap-2"><span className="text-[11px] text-white/40">BGM {bgmVolume}%</span><input aria-label="배경음 볼륨" type="range" min="0" max="45" value={bgmVolume} onChange={(e) => setBgmVolume(Number(e.target.value))} className="flex-1 accent-violet-400" /></div>
-                    <p className="text-[10px] leading-4 text-white/30">선택한 성우와 배경음은 영상 만들기 결과에 함께 저장됩니다.</p>
+                    <p className="text-[10px] leading-4 text-white/30">영상 미리보기 재생에도 선택한 성우와 배경음이 함께 나옵니다. 직접 추가한 영상은 무음 배경으로 사용됩니다.</p>
                   </div>
                 </div>
               )}
