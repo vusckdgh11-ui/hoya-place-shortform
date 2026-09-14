@@ -17,7 +17,6 @@ const searchQueries = uniq([
   ...shortNames.slice(1).flatMap((candidate) => [`${candidate} ${city}`, candidate]),
   name,
 ]).map(clean);
-const query = searchQueries[0];
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ locale: "ko-KR", userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/152 Safari/537.36" });
 
@@ -110,12 +109,12 @@ for (const tabName of ["menu", "photo", "review/visitor"]) {
 
 const normalizedHtml = combined.replace(/\\\//g, "/").replace(/&amp;/g, "&");
 const imageMatches = [...normalizedHtml.matchAll(/https?:\/\/[^"'<>\s]+?\.(?:jpg|jpeg|png|webp)(?:\?[^"'<>\s]*)?/gi)].map((m) => m[0]);
-const placeImages = uniq(imageMatches).filter((url) => {
+const rawPlaceImages = uniq(imageMatches).filter((url) => {
   const decoded = decodeURIComponent(url);
   const isPlacePhoto = /(?:ldb-phinf|pup-review-phinf|myplace-phinf)\.pstatic\.net/i.test(decoded);
   const isThumbnail = /[?&]type=f(?:48|84|120|152|167|180|192)_/i.test(url);
   return isPlacePhoto && !isThumbnail && !/(?:avatar|profile|favicon|emoji)/i.test(decoded);
-}).slice(0, 30);
+}).slice(0, 40);
 
 // 업체명과 지역을 함께 검색해 관련도가 높은 네이버 블로그의 원본 사진도 수집한다.
 const blogImages = [];
@@ -158,8 +157,33 @@ try {
   }
 } catch { /* 블로그가 막혀도 플레이스 결과는 유지 */ }
 
-const uniqueBlogImages = uniq(blogImages).slice(0, 30);
-const images = uniq([...placeImages, ...uniqueBlogImages]).slice(0, 50);
+const stableKey = (url) => {
+  try { const parsed = new URL(url); return decodeURIComponent(parsed.searchParams.get("src") || url).replace(/[?&]type=[^&]+/i, ""); } catch { return url; }
+};
+const uniqueBySource = (urls) => {
+  const seen = new Set();
+  return urls.filter((url) => { const key = stableKey(url); if (seen.has(key)) return false; seen.add(key); return true; });
+};
+const isPublicImage = async (url) => {
+  try {
+    const response = await fetch(url, { headers: { "user-agent": "Mozilla/5.0", accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8" }, redirect: "follow", signal: AbortSignal.timeout(12000) });
+    const valid = response.ok && (response.headers.get("content-type") || "").startsWith("image/");
+    await response.body?.cancel();
+    return valid;
+  } catch { return false; }
+};
+const validateImages = async (urls) => {
+  const output = [];
+  for (let start = 0; start < urls.length; start += 8) {
+    const batch = urls.slice(start, start + 8);
+    const valid = await Promise.all(batch.map(isPublicImage));
+    batch.forEach((url, index) => { if (valid[index]) output.push(url); });
+  }
+  return output;
+};
+const placeImages = (await validateImages(uniqueBySource(rawPlaceImages))).slice(0, 30);
+const uniqueBlogImages = (await validateImages(uniqueBySource(uniq(blogImages)))).slice(0, 30);
+const images = [...placeImages, ...uniqueBlogImages].slice(0, 50);
 const menuBlocks = [...normalizedHtml.matchAll(/"name"\s*:\s*"([^"\\]{2,50})"[\s\S]{0,300}?"price"\s*:\s*"?([0-9,]+)/g)].slice(0, 20);
 const menus = uniq(menuBlocks.map((m) => `${clean(m[1])}|${clean(m[2])}`)).map((row) => { const [menuName, price] = row.split("|"); return { name: menuName, price }; });
 const reviews = uniq([...normalizedHtml.matchAll(/"(?:reviewBody|body|text)"\s*:\s*"([^"\\]{8,220})"/g)].map((m) => clean(m[1].replace(/\\n/g, " ")))).slice(0, 30);

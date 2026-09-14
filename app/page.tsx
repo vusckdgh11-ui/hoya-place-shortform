@@ -902,7 +902,7 @@ export default function Home() {
                     key={`${url}-${i}`}
                     className={`relative aspect-square overflow-hidden rounded-lg border-2 ${scenes[active]?.image === url ? "border-violet-400" : "border-transparent"}`}
                   >
-                    <button onClick={() => updateScene(active, { image: url })} className="h-full w-full"><img src={proxyImage(url)} alt={`사진 ${i + 1}`} className="h-full w-full object-cover" /></button>
+                    <button onClick={() => updateScene(active, { image: url })} className="h-full w-full"><img src={proxyImage(url)} alt={`사진 ${i + 1}`} onError={() => removeImage(url)} className="h-full w-full object-cover" /></button>
                     <span className="absolute bottom-1 left-1 rounded bg-black/65 px-1.5 py-0.5 text-[9px] font-bold">{blogImages.includes(url) ? "블로그" : placeImages.includes(url) ? "플레이스" : "직접"}</span>
                     <button onClick={() => removeImage(url)} aria-label="사진 삭제" className="absolute left-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/70 text-white/70 hover:bg-red-500"><Trash2 size={11} /></button>
                     {scenes[active]?.image === url && (
