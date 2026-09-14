@@ -6,3 +6,4 @@
 
 - `KAKAO_REST_API_KEY`
 - `GITHUB_ACTION_TOKEN`
+- `TYPECAST_API_KEY` (타입캐스트 성우 목록·음성 합성용)
